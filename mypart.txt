@@ -1,0 +1,84 @@
+public void UpdateReservation(Reservation reservation, string newName, string newCitizenship, bool isActive, out string errorMessage)
+{
+    errorMessage = "";
+    
+    // 1. Explicitly verify no other fields were tampered with
+    if (reservation.ReservationCode != txtReservationCodeDisplay.Text ||
+        reservation.Flight.FlightCode != txtReservationFlightCode.Text ||
+        reservation.Flight.Airline != txtReservationAirlineDisplay.Text ||
+        reservation.Flight.Cost != decimal.Parse(txtReservationCost.Text.Replace("$","")))
+    {
+        errorMessage = "Cannot modify these read only fields!";
+        return;
+    }
+    
+    // checking Validation 
+    if (reservation == null)
+    {
+        errorMessage = "Reservation cannot be null/empty!";
+        return;
+    }
+    
+    if (string.IsNullOrEmpty(newName))
+    {
+        errorMessage = "Traveler name cannot be empty!";
+        return;
+    }
+    
+    if (string.IsNullOrEmpty(newCitizenship))
+    {
+        errorMessage = "Citizenship cannot be empty!";
+        return;
+    }
+
+    // Check seat availability when activating
+    if (!reservation.IsActive && isActive && reservation.Flight.AvailableSeats <= 0)
+    {
+        errorMessage = "Flight is fully booked!";
+        return;
+    }
+
+    // Update the reservation
+    reservation.TravelerName = newName;
+    reservation.Citizenship = newCitizenship;
+    
+    // Handle seat changes
+    if (reservation.IsActive && !isActive)
+    {
+        reservation.Flight.AvailableSeats++; // Free up seat
+    }
+    else if (!reservation.IsActive && isActive)
+    {
+        reservation.Flight.AvailableSeats--; // Take seat
+    }
+    
+    reservation.IsActive = isActive;
+    SaveReservations();
+}
+
+//----------------------------------------------------------------------------------------------------------------
+private void btnUpdate_Click(object sender, EventArgs e)
+{
+    // Checking if a reservation is selected
+    if (lstReservations.SelectedItem is not Reservation selectedReservation)
+    {
+        MessageBox.Show("Please select a reservation first.");
+        return;
+    }
+
+    // Getting input values
+    string name = txtReservationName.Text.Trim();
+    string citizenship = txtReservationCitizenship.Text.Trim();
+    bool isActive = chkReservationActive.Checked;
+
+    // Trying to update
+    UpdateReservation(selectedReservation, name, citizenship, isActive, out string error);
+
+    // displaying result
+    MessageBox.Show(string.IsNullOrEmpty(error) 
+        ? "Updated successfully!" 
+        : $"Error: {error}");
+
+    // Refreshes if successful
+    if (error == "") btnFindReservations_Click(null, null);
+}
